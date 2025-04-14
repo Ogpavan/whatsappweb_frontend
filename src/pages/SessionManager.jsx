@@ -36,26 +36,13 @@ export default function SessionManager({
   // 🔄 Poll user status
   const checkUserConnection = async () => {
     if (!sessionId) return;
-  
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/user-details/${sessionId}`);
-  
       if (res.ok) {
-        const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const user = await res.json();
-          setUserData(user);
-          setStatus('active');
-        } else {
-          console.warn('Expected JSON, but got:', contentType);
-          const text = await res.text();
-          console.warn('Response content:', text);
-          setUserData(null);
-          setStatus('inactive');
-        }
+        const user = await res.json();
+        setUserData(user);
+        setStatus('active');
       } else {
-        const errText = await res.text(); // helpful for logging errors
-        console.warn(`Server responded with ${res.status}: ${errText}`);
         setUserData(null);
         setStatus('inactive');
       }
@@ -64,7 +51,6 @@ export default function SessionManager({
       setStatus('inactive');
     }
   };
-  
 
   useEffect(() => {
     if (sessionId) {

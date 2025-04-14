@@ -36,21 +36,36 @@ export default function SessionManager({
   // 🔄 Poll user status
   const checkUserConnection = async () => {
     if (!sessionId) return;
+  
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/user-details/${sessionId}`);
-      if (res.ok) {
+      const contentType = res.headers.get("Content-Type");
+  
+      if (res.status === 202) {
+        console.log("⏳ Client is initializing, waiting for QR scan...");
+        setUserData(null);
+        setStatus('waiting');
+        return;
+      }
+  
+      if (res.ok && contentType?.includes("application/json")) {
         const user = await res.json();
         setUserData(user);
         setStatus('active');
       } else {
+        const errorText = await res.text();
+        console.error("❌ Unexpected response:", res.status, errorText);
         setUserData(null);
         setStatus('inactive');
       }
+  
     } catch (err) {
-      console.error('Status check error:', err);
+      console.error("❌ Status check failed:", err);
+      setUserData(null);
       setStatus('inactive');
     }
   };
+  
 
   useEffect(() => {
     if (sessionId) {
@@ -82,6 +97,7 @@ export default function SessionManager({
 
       const qrRes = await fetch(`${import.meta.env.VITE_API_URL}/generate-qrcode/${sessionData.sessionId}`);
       const qrData = await qrRes.json();
+      console.log(qrData);
 
       if (qrData.qrCode) {
         setQrCode(qrData.qrCode);
@@ -89,8 +105,10 @@ export default function SessionManager({
 
         const interval = setInterval(async () => {
           const userRes = await fetch(`${import.meta.env.VITE_API_URL}/user-details/${sessionData.sessionId}`);
+          console.log(userRes);
           if (userRes.ok) {
             const user = await userRes.json();
+            console.log(user);
             setUserData(user);
             setWaitingForScan(false);
             setStatus('active');
